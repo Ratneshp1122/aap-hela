@@ -47,6 +47,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   initModals();
   initButtons();
+  initChatEngine();
+  initTickerLive();
 });
 
 // ── Navigation ─────────────────────────────────────────────────────────
@@ -1059,4 +1061,191 @@ function renderRiskBars(positions, totalValue) {
       <div class="rb-label" style="background:${col}22;color:${col}">${lbl}</div>
     </div>`;
   }).join('');
+}
+
+// ── Chat Engine ────────────────────────────────────────────────────────
+const chatState = {
+  sessionId:  null,
+  agentId:    'gemini',
+  reputation: 25,
+  messages:   [],
+};
+
+const AGENT_THRESHOLDS = {
+  llama3: { min_rep: 0,  max_risk: 1.0 },
+  gemini: { min_rep: 10, max_risk: 0.7 },
+  gpt4o:  { min_rep: 40, max_risk: 0.5 },
+  claude: { min_rep: 70, max_risk: 0.3 },
+};
+
+function initChatEngine() {
+  // Agent chip selection
+  document.querySelectorAll('.agent-chip:not(.locked)').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.agent-chip').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      chatState.agentId = btn.dataset.agent;
+      const names = { gemini:'Gemini 1.5 Pro', llama3:'Llama 3 70B', gpt4o:'GPT-4o', claude:'Claude 3.5' };
+      showChatMsg('assistant', `Switched to **${names[chatState.agentId] || chatState.agentId}**. How can I help?`);
+    });
+  });
+
+  // Send button
+  document.getElementById('chat-send-btn')?.addEventListener('click', sendChatMessage);
+  document.getElementById('chat-input')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChatMessage(); }
+  });
+
+  // Quick action buttons
+  document.querySelectorAll('.qa-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const input = document.getElementById('chat-input');
+      if (input) { input.value = btn.dataset.prompt; sendChatMessage(); }
+    });
+  });
+}
+
+function sendChatMessage() {
+  const input = document.getElementById('chat-input');
+  const msg   = input?.value?.trim();
+  if (!msg) return;
+  input.value = '';
+
+  showChatMsg('user', msg);
+  chatState.messages.push({ role: 'user', content: msg });
+
+  // Show typing
+  const typing = document.getElementById('chat-typing');
+  if (typing) typing.style.display = 'flex';
+
+  // Call backend or simulate
+  if (!DEMO_MODE) {
+    fetch(`${API_BASE}/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message:    msg,
+        session_id: chatState.sessionId,
+        agent_id:   chatState.agentId,
+      }),
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (typing) typing.style.display = 'none';
+      chatState.sessionId = data.session_id;
+      chatState.messages.push({ role: 'assistant', content: data.reply });
+      showChatMsg('assistant', data.reply);
+    })
+    .catch(() => {
+      if (typing) typing.style.display = 'none';
+      showChatMsg('assistant', simulateChatReply(msg));
+    });
+  } else {
+    setTimeout(() => {
+      if (typing) typing.style.display = 'none';
+      const reply = simulateChatReply(msg);
+      chatState.messages.push({ role: 'assistant', content: reply });
+      showChatMsg('assistant', reply);
+    }, 900 + Math.random() * 600);
+  }
+}
+
+function showChatMsg(role, text) {
+  const container = document.getElementById('chat-messages');
+  if (!container) return;
+
+  const agentNames = { gemini:'Gemini 1.5 Pro · AAP', llama3:'Llama 3 · AAP', gpt4o:'GPT-4o · AAP', claude:'Claude 3.5 · AAP' };
+  const icons      = { gemini:'✦', llama3:'🦙', gpt4o:'⬡', claude:'◈' };
+  const agentName  = agentNames[chatState.agentId] || 'AAP';
+  const icon       = role === 'user' ? '👤' : (icons[chatState.agentId] || '✦');
+  const now        = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+  const formattedText = renderMarkdown(text);
+
+  const div = document.createElement('div');
+  div.className = `chat-msg ${role}`;
+  div.innerHTML = `
+    <div class="chat-avatar">${icon}</div>
+    <div class="chat-bubble">
+      ${role === 'assistant' ? `<div class="chat-agent-name">${agentName}</div>` : ''}
+      <div class="chat-text">${formattedText}</div>
+      <div class="chat-time">${now}</div>
+    </div>
+  `;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+function renderMarkdown(text) {
+  return text
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/`(.*?)`/g, '<code style="background:rgba(100,130,200,0.15);padding:1px 6px;border-radius:4px;font-family:monospace">$1</code>')
+    .replace(/\n/g, '<br>');
+}
+
+function simulateChatReply(msg) {
+  const lo = msg.toLowerCase();
+  const agents = { gemini:'Gemini 1.5 Pro', llama3:'Llama 3 70B', gpt4o:'GPT-4o', claude:'Claude 3.5 Sonnet' };
+  const name   = agents[chatState.agentId] || 'AAP AI';
+
+  // Detect stock
+  const stocks = ['reliance','tcs','hdfc','infy','wipro','icicibank','kotakbank','bhartiartl'];
+  const hit    = stocks.find(s => lo.includes(s));
+  if (hit) {
+    const SYM = hit.toUpperCase();
+    const stock = NSE_STOCKS[SYM] || { price: 1000 };
+    const rsi  = (40 + Math.random() * 30).toFixed(1);
+    const action = rsi > 60 ? 'HOLD' : rsi < 40 ? 'SELL' : 'BUY';
+    return `**${name} — ${SYM} Analysis**\n\nCurrent Price: ₹${stock.price.toLocaleString('en-IN')}\n\n**Technicals:**\n- RSI(14): ${rsi} → ${rsi>70?'Overbought':rsi<30?'Oversold':'Neutral'}\n- MACD: ${Math.random()>0.5?'Bullish crossover':'Bearish divergence'}\n- Bollinger: ${Math.random()>0.5?'Mid-band, room upward':'Near upper band'}\n- News Sentiment: ${(0.3+Math.random()*0.5).toFixed(2)} (${Math.random()>0.5?'Positive':'Neutral'})\n\n**Recommendation: ${action}**\nRisk Score: ${(0.2+Math.random()*0.5).toFixed(2)}\n\n*This decision will be logged as a PDR on HeLa Chain.*`;
+  }
+
+  if (lo.includes('eth') || lo.includes('bitcoin') || lo.includes('btc') || lo.includes('crypto')) {
+    return `**${name} — Crypto Market**\n\nETH/USD: $3,214 · 24h: **+2.1%**\nBTC/USD: $67,240 · 24h: **+0.9%**\nMarket Fear/Greed: 72 (Greed)\n\n**Outlook:** Short-term bullish. ETH showing accumulation patterns. Caution: high volatility assets, limit to <10% portfolio allocation.`;
+  }
+
+  if (lo.includes('portfolio') || lo.includes('holdings') || lo.includes('p&l')) {
+    const total = Object.values(PORTFOLIO_HOLDINGS).reduce((s,h) => s + (NSE_STOCKS[Object.keys(PORTFOLIO_HOLDINGS).find(k=>PORTFOLIO_HOLDINGS[k]===h)]?.price||h.avgCost)*h.qty, 0);
+    return `**${name} — Portfolio Summary**\n\nTotal Value: ₹${Math.round(total).toLocaleString('en-IN')}\n\nTop Performer: **TCS** (+8.2%)\nWatch: **WIPRO** (-1.2%)\n\nAgent Recommendation: Maintain core positions. Trim WIPRO by 20% on further weakness. Overall portfolio risk: **MEDIUM**.`;
+  }
+
+  if (lo.includes('pdr') || lo.includes('audit') || lo.includes('verify') || lo.includes('trail')) {
+    return `**${name} — PDR Audit Trail**\n\nEvery trading decision is recorded as a **PDR (Protocol Decision Record)**:\n\n1. Decision made by AI agent\n2. PDR JSON uploaded to **IPFS** (Pinata)\n3. SHA-256 hash included in **Merkle tree**\n4. Merkle root anchored on **HeLa Chain** (AuditAnchor.sol)\n5. 24h **challenge window** opens\n6. **DAO** can vote to override\n\nThis creates an immutable, tamper-proof audit trail for every trade.`;
+  }
+
+  if (lo.includes('mutual fund') || lo.includes('sip') || lo.includes('mf')) {
+    return `**${name} — Mutual Fund Picks**\n\nTop SIP recommendations:\n- **Parag Parikh Flexi Cap** — Diversified, consistent 14% 5Y returns\n- **Mirae Asset Large Cap** — Low expense ratio, Nifty50 beater\n- **HDFC Mid-Cap Opp.** — Higher risk, higher potential\n\nSIP as low as ₹500/month. All decisions logged as PDRs.`;
+  }
+
+  return `**${name} ready.**\n\nI can help you with:\n- 📊 **Stock Analysis** — *Analyze RELIANCE*, *Should I buy TCS?*\n- Ξ **Crypto** — *ETH price today*, *BTC outlook*\n- 💼 **Portfolio** — *How is my portfolio?*, *P&L summary*\n- 📁 **Mutual Funds** — *Top SIP funds*\n- 🔍 **Audit** — *Explain PDR trail*, *Verify decision*`;
+}
+
+// ── Live Ticker ─────────────────────────────────────────────────────────
+function initTickerLive() {
+  // Duplicate ticker items to make seamless scroll
+  const track = document.getElementById('ticker-track');
+  if (!track) return;
+  const clone = track.innerHTML;
+  track.innerHTML = clone + clone;  // duplicate for seamless loop
+
+  // Update prices periodically
+  setInterval(updateTickerPrices, 8000);
+}
+
+function updateTickerPrices() {
+  const track = document.getElementById('ticker-track');
+  if (!track) return;
+  const items = track.querySelectorAll('.ticker-item');
+  items.forEach(item => {
+    const sym   = item.querySelector('.tick-sym')?.textContent;
+    const stock = NSE_STOCKS[sym];
+    if (!stock) return;
+    const change = (Math.random() - 0.48) * 0.012;
+    stock.price  = +(stock.price * (1 + change)).toFixed(2);
+    const chgPct = (change * 100).toFixed(2);
+    const up     = change >= 0;
+    const priceEl = item.querySelector('.tick-price');
+    const chgEl   = item.querySelector('.tick-chg');
+    if (priceEl) priceEl.textContent = '₹' + stock.price.toLocaleString('en-IN', {maximumFractionDigits:0});
+    if (chgEl)   { chgEl.textContent = (up?'+':'')+chgPct+'%'; chgEl.className = 'tick-chg '+(up?'up':'down'); }
+  });
 }

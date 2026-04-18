@@ -92,11 +92,180 @@
   <!-- Main Content -->
   <main class="main-content">
 
-    <!-- ══ PAGE: OVERVIEW ══════════════════════════════════════════════════ -->
+    <!-- ══ PAGE: OVERVIEW (Chatbot Landing) ═══════════════════════════════ -->
     <section class="page active" id="page-overview">
-      <!-- Stats Row -->
-      <div class="stats-grid">
-        <div class="stat-card">
+
+      <!-- Market Ticker -->
+      <div class="ticker-bar" id="ticker-bar">
+        <div class="ticker-track" id="ticker-track">
+          <span class="ticker-item"><span class="tick-sym">RELIANCE</span> <span class="tick-price">₹2,847</span> <span class="tick-chg up">+1.2%</span></span>
+          <span class="ticker-item"><span class="tick-sym">TCS</span> <span class="tick-price">₹3,921</span> <span class="tick-chg up">+0.8%</span></span>
+          <span class="ticker-item"><span class="tick-sym">HDFC</span> <span class="tick-price">₹1,723</span> <span class="tick-chg down">-0.3%</span></span>
+          <span class="ticker-item"><span class="tick-sym">INFY</span> <span class="tick-price">₹1,481</span> <span class="tick-chg up">+1.5%</span></span>
+          <span class="ticker-item"><span class="tick-sym">ETH</span> <span class="tick-price">$3,214</span> <span class="tick-chg up">+2.1%</span></span>
+          <span class="ticker-item"><span class="tick-sym">BTC</span> <span class="tick-price">$67,240</span> <span class="tick-chg up">+0.9%</span></span>
+          <span class="ticker-item"><span class="tick-sym">WIPRO</span> <span class="tick-price">₹511</span> <span class="tick-chg down">-1.2%</span></span>
+          <span class="ticker-item"><span class="tick-sym">ICICIBANK</span> <span class="tick-price">₹1,102</span> <span class="tick-chg up">+0.5%</span></span>
+          <span class="ticker-item"><span class="tick-sym">BHARTIARTL</span> <span class="tick-price">₹1,648</span> <span class="tick-chg up">+1.8%</span></span>
+          <span class="ticker-item"><span class="tick-sym">NIFTY50</span> <span class="tick-price">24,142</span> <span class="tick-chg up">+0.4%</span></span>
+          <span class="ticker-item"><span class="tick-sym">SENSEX</span> <span class="tick-price">79,312</span> <span class="tick-chg up">+0.3%</span></span>
+        </div>
+      </div>
+
+      <!-- Chatbot Layout -->
+      <div class="chat-layout">
+
+        <!-- Chat Panel (main) -->
+        <div class="chat-panel">
+          <!-- Agent Selector -->
+          <div class="agent-selector">
+            <span class="agent-sel-label">AI Agent:</span>
+            <div class="agent-chips" id="agent-chips">
+              <button class="agent-chip active" data-agent="gemini" title="Standard · Rep ≥10">
+                <span class="agent-chip-icon">✦</span>
+                <span class="agent-chip-name">Gemini</span>
+                <span class="agent-chip-badge">Standard</span>
+              </button>
+              <button class="agent-chip" data-agent="llama3" title="Free · All users">
+                <span class="agent-chip-icon">🦙</span>
+                <span class="agent-chip-name">Llama 3</span>
+                <span class="agent-chip-badge free">Fast</span>
+              </button>
+              <button class="agent-chip locked" data-agent="gpt4o" title="Requires Rep ≥40">
+                <span class="agent-chip-icon">⬡</span>
+                <span class="agent-chip-name">GPT-4o</span>
+                <span class="agent-chip-badge locked-badge">Rep 40+</span>
+              </button>
+              <button class="agent-chip locked" data-agent="claude" title="Requires Rep ≥70">
+                <span class="agent-chip-icon">◈</span>
+                <span class="agent-chip-name">Claude</span>
+                <span class="agent-chip-badge locked-badge">Rep 70+</span>
+              </button>
+            </div>
+            <div class="rep-display">
+              <span class="rep-label">Your Rep:</span>
+              <span class="rep-score" id="rep-score">25</span>
+              <span class="rep-tier" id="rep-tier">Standard</span>
+            </div>
+          </div>
+
+          <!-- Chat Messages -->
+          <div class="chat-messages" id="chat-messages">
+            <div class="chat-msg assistant">
+              <div class="chat-avatar">✦</div>
+              <div class="chat-bubble">
+                <div class="chat-agent-name">Gemini 1.5 Pro · AAP</div>
+                <div class="chat-text">
+                  <strong>Welcome to AAP — Agent Audit Protocol.</strong><br><br>
+                  I'm your AI trading assistant on HeLa blockchain. Every decision I make is logged as a tamper-proof PDR record, anchored on-chain, and open for DAO governance.<br><br>
+                  Try asking:<br>
+                  · <em>Analyze RELIANCE</em> or <em>Should I buy TCS?</em><br>
+                  · <em>What's ETH doing today?</em><br>
+                  · <em>How is my portfolio performing?</em>
+                </div>
+                <div class="chat-time">Just now</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Typing Indicator (hidden) -->
+          <div class="chat-typing" id="chat-typing" style="display:none">
+            <div class="chat-avatar">✦</div>
+            <div class="typing-bubble">
+              <span></span><span></span><span></span>
+            </div>
+          </div>
+
+          <!-- Chat Input -->
+          <div class="chat-input-row">
+            <input class="chat-input" id="chat-input"
+              placeholder="Ask about stocks, crypto, portfolio, or audit records..."
+              autocomplete="off"/>
+            <button class="chat-send-btn" id="chat-send-btn">
+              <span>▶</span>
+            </button>
+          </div>
+
+          <!-- Quick Actions -->
+          <div class="chat-quick-actions">
+            <button class="qa-btn" data-prompt="Analyze RELIANCE">📊 RELIANCE</button>
+            <button class="qa-btn" data-prompt="Analyze TCS">📊 TCS</button>
+            <button class="qa-btn" data-prompt="What is ETH doing today?">Ξ ETH</button>
+            <button class="qa-btn" data-prompt="How is my portfolio performing?">💼 Portfolio</button>
+            <button class="qa-btn" data-prompt="Explain the PDR audit trail">🔍 Audit Trail</button>
+          </div>
+        </div>
+
+        <!-- Right Sidebar: Stats + Protocol Flow -->
+        <div class="chat-sidebar">
+
+          <!-- Stats -->
+          <div class="chat-stats-grid">
+            <div class="cs-card">
+              <div class="cs-val" id="stat-total">0</div>
+              <div class="cs-lbl">Decisions</div>
+            </div>
+            <div class="cs-card green">
+              <div class="cs-val" id="stat-auto">0</div>
+              <div class="cs-lbl">Auto-Approved</div>
+            </div>
+            <div class="cs-card warn">
+              <div class="cs-val" id="stat-manual">0</div>
+              <div class="cs-lbl">Pending</div>
+            </div>
+            <div class="cs-card danger">
+              <div class="cs-val" id="stat-challenges">0</div>
+              <div class="cs-lbl">Challenges</div>
+            </div>
+            <div class="cs-card cyan">
+              <div class="cs-val" id="stat-conf">0.00</div>
+              <div class="cs-lbl">Avg Conf.</div>
+            </div>
+            <div class="cs-card purple">
+              <div class="cs-val" id="stat-anchored">0</div>
+              <div class="cs-lbl">HeLa Anchors</div>
+            </div>
+          </div>
+
+          <!-- Protocol Flow -->
+          <div class="section-card" style="margin-bottom:16px">
+            <div class="section-header">
+              <h2>Protocol Flow</h2>
+              <span class="live-dot"></span>
+            </div>
+            <div class="protocol-flow" style="flex-direction:column;gap:0">
+              <div class="flow-step-v active"><span class="fsv-icon">🤖</span><span class="fsv-label">Financial Agent</span><span class="fsv-sub">LangGraph + Gemini</span></div>
+              <div class="fsv-line"></div>
+              <div class="flow-step-v active"><span class="fsv-icon">📋</span><span class="fsv-label">PDR Builder</span><span class="fsv-sub">Pre-validation</span></div>
+              <div class="fsv-line"></div>
+              <div class="flow-step-v active"><span class="fsv-icon">🌐</span><span class="fsv-label">IPFS Upload</span><span class="fsv-sub">Pinata pinning</span></div>
+              <div class="fsv-line"></div>
+              <div class="flow-step-v active"><span class="fsv-icon">⬡</span><span class="fsv-label">HeLa Anchor</span><span class="fsv-sub">AuditAnchor.sol</span></div>
+              <div class="fsv-line"></div>
+              <div class="flow-step-v" id="flow-dao"><span class="fsv-icon">🗳️</span><span class="fsv-label">DAO Governance</span><span class="fsv-sub" id="flow-dao-sub">24h challenge window</span></div>
+            </div>
+          </div>
+
+          <!-- Recent Decisions -->
+          <div class="section-card">
+            <div class="section-header">
+              <h2>Recent Decisions</h2>
+              <span class="live-dot"></span>
+            </div>
+            <div class="mini-feed" id="mini-feed">
+              <div class="feed-empty">No decisions yet.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+
+    <!-- ══ PAGE: DECISIONS ══════════════════════════════════════════════════ -->
+    <section class="page" id="page-decisions">
+      <div class="page-controls">
+
           <div class="stat-icon">◎</div>
           <div class="stat-body">
             <div class="stat-value" id="stat-total">0</div>
@@ -243,10 +412,10 @@
       </div>
     </section>
 
+
     <!-- ══ PAGE: DECISIONS ══════════════════════════════════════════════════ -->
     <section class="page" id="page-decisions">
-      <div class="page-controls">
-        <div class="filter-tabs" id="decision-filters">
+
           <button class="filter-tab active" data-filter="ALL">All</button>
           <button class="filter-tab" data-filter="PENDING_CHALLENGE">Pending</button>
           <button class="filter-tab" data-filter="APPROVED">Approved</button>
